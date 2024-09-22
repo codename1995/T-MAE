@@ -71,7 +71,7 @@ data
 │   │── once_infos_train.pkl
 │   │── once_infos_val.pkl
 │── ckpts
-│   │── graph_rcnn_po.pth
+│   │── once_tmae_weights.pth
 │   │── ...
 ```
 
