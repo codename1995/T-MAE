@@ -97,7 +97,7 @@ We could not provide the above pretrained models due to [Waymo Dataset License A
 
 ### ONCE
 | | mAP | Vehicle | Pedestrian | Cyclist | Pretrained Weights |
-| --- | --- | --- | --- | --- | --- |
+| --- | :---: | :---: | :---: | :---: | :---: |
 | T-MAE | 67.41 | 77.53 | 54.81 | 69.90 | [ckpt](https://drive.google.com/file/d/1_8YrjzobyxrK86TyQphGZwhEjBMOfnOa/view?usp=drive_link) |
 
 
