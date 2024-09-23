@@ -1,7 +1,7 @@
 # [ECCV 2024] T-MAE: Temporal Masked Autoencoders for Point Cloud Representation Learning
 ---
-[![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2312.10217)
 [![Website](https://img.shields.io/badge/Project-Page-blue)](https://codename1995.github.io/t-mae.github.io/)
+[![arXiv](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/abs/2312.10217)
 
 
 
