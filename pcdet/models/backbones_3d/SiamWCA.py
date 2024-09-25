@@ -272,28 +272,28 @@ class SSTInputLayer_Temporal(SSTInputLayer):
 class WCABlock(nn.Module):
     # inherit from SSTBlockV1, except for the following changes:
     # 1. change cfg:
-    #       1.1 indice_key/name: sst_block -> ca_block
+    #       1.1 indice_key/name: sst_block -> wca_block
     #       1.2 NUM_BLOCKS: 2 -> 1 (Temporarily)
     # 2. delete self.conv_down
     # 3. SSTInputLayer() -> SSTInputLayer(temporal=True)
-    # 4. BasicShiftBlockV2 -> BasicShiftBlock_CA
+    # 4. BasicShiftBlockV2 -> BasicShiftBlock_WCA
     #
     def __init__(self, model_cfg, input_channels, indice_key, **kwargs):
-        indice_key.replace("sst_block", "ca_block")  # change - add
+        indice_key.replace("sst_block", "wca_block")  # change - add
         super().__init__()
         self.model_cfg = model_cfg
         encoder_cfg = model_cfg.ENCODER
         d_model = encoder_cfg.D_MODEL
         stride = encoder_cfg.STRIDE
-        if model_cfg.get("CABlock", None) is not None:
-            self.CABlock_Version = model_cfg.CABlock["Version"]
+        if model_cfg.get("WCABlock", None) is not None:
+            self.WCABlock_Version = model_cfg.WCABlock["Version"]
         else:
-            self.CABlock_Version = 1
+            self.WCABlock_Version = 1
         norm_fn = partial(nn.BatchNorm1d, eps=1e-3, momentum=0.01)
         self.sst_temporal_input_layer = SSTInputLayer_Temporal(model_cfg.PREPROCESS)
         if encoder_cfg.NUM_BLOCKS == 2:
             encoder_cfg.NUM_BLOCKS = 1
-            print("Warning: NUM_BLOCKS is set to 1 for CA block")
+            print("Warning: NUM_BLOCKS is set to 1 for WCA block")
         block_list = []
         for i in range(encoder_cfg.NUM_BLOCKS):
             block_list.append(
@@ -421,14 +421,9 @@ class WCABlock(nn.Module):
         pos_embed_list = [voxel_info[f"pos_dict_shift{i}"] for i in range(num_shifts)]
 
         output = voxel_features
-        if self.CABlock_Version == 4 or self.CABlock_Version == 5:
-            output = self.encoder_blocks[0](
-                output, pos_embed_list, ind_dict_list, padding_mask_list
-            )
-        else:
-            output = self.encoder_blocks[1](
-                output, pos_embed_list, ind_dict_list, padding_mask_list
-            )
+        output = self.encoder_blocks[1](
+            output, pos_embed_list, ind_dict_list, padding_mask_list
+        )
         voxel_features = output
 
         return voxel_features, voxel_coords, voxel_shuffle_inds
@@ -510,12 +505,12 @@ class SiamWCA(nn.Module):
                 self.asymmetric_simsiam = True
 
         # Inherited from above 5 lines
-        ca_block_list = model_cfg.SST_BLOCK_LIST
+        wca_block_list = model_cfg.SST_BLOCK_LIST
         self.wca_blocks = nn.ModuleList()
-        for ca_block_cfg in ca_block_list:
-            in_channels = ca_block_cfg.ENCODER.D_MODEL
+        for wca_block_cfg in wca_block_list:
+            in_channels = wca_block_cfg.ENCODER.D_MODEL
             self.wca_blocks.append(
-                WCABlock(ca_block_cfg, in_channels, ca_block_cfg.NAME)
+                WCABlock(wca_block_cfg, in_channels, wca_block_cfg.NAME)
             )
 
         in_channels = 0
@@ -591,10 +586,10 @@ class SiamWCA(nn.Module):
         self, multi_scale_3d_features, multi_scale_3d_features_prev, dtime=0
     ):
         multi_scale_3d_features_new = {}
-        for i, ca_block in enumerate(self.wca_blocks):
+        for i, wca_block in enumerate(self.wca_blocks):
             x_prev = multi_scale_3d_features_prev[f"x_conv{i + 1}"]
             x = multi_scale_3d_features[f"x_conv{i + 1}"]
-            x = ca_block(x, x_prev, dtime)
+            x = wca_block(x, x_prev, dtime)
             multi_scale_3d_features_new[f"x_conv{i + 1}"] = x
 
         return multi_scale_3d_features_new

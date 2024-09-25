@@ -67,11 +67,13 @@ class SiamWCA_MAE(nn.Module):
                 self.asymmetric_simsiam = True
 
         # Inherited from above 5 lines
-        ca_block_list = model_cfg.SST_BLOCK_LIST
-        self.ca_blocks = nn.ModuleList()
-        for ca_block_cfg in ca_block_list:
-            in_channels = ca_block_cfg.ENCODER.D_MODEL
-            self.ca_blocks.append(CABlock(ca_block_cfg, in_channels, ca_block_cfg.NAME))
+        wca_block_list = model_cfg.SST_BLOCK_LIST
+        self.wca_blocks = nn.ModuleList()
+        for wca_block_cfg in wca_block_list:
+            in_channels = wca_block_cfg.ENCODER.D_MODEL
+            self.wca_blocks.append(
+                WCABlock(wca_block_cfg, in_channels, wca_block_cfg.NAME)
+            )
 
         in_channels = 0
         self.decoder_deblocks = nn.ModuleList()
@@ -218,10 +220,10 @@ class SiamWCA_MAE(nn.Module):
     def sparse_cross_attn(
         self, multi_scale_3d_features, multi_scale_3d_features_prev, dtime=0
     ):
-        for i, ca_block in enumerate(self.ca_blocks):
+        for i, wca_block in enumerate(self.wca_blocks):
             x_prev = multi_scale_3d_features_prev[f"x_conv{i + 1}"]
             x = multi_scale_3d_features[f"x_conv{i + 1}"]
-            x = ca_block(x, x_prev, dtime)
+            x = wca_block(x, x_prev, dtime)
             multi_scale_3d_features[f"x_conv{i + 1}"] = x
 
         return multi_scale_3d_features
@@ -260,24 +262,14 @@ class SiamWCA_MAE(nn.Module):
             batch_dict["voxel_features_prev"],
             batch_dict["voxel_coords_prev"],
         )
-        if self.asymmetric and self.asymmetric_simsiam:
-            with torch.no_grad():
-                multi_scale_3d_features_prev, multi_scale_3d_strides_prev = (
-                    self.sparse_encode(
-                        all_voxel_features_prev, all_voxel_coords_prev, batch_size
-                    )
-                )
-        else:
-            multi_scale_3d_features_prev, multi_scale_3d_strides_prev = (
-                self.sparse_encode(
-                    all_voxel_features_prev,
-                    all_voxel_coords_prev,
-                    batch_size,
-                    previous_sstblock=True,
-                )
+        multi_scale_3d_features_prev, multi_scale_3d_strides_prev = (
+            self.sparse_encode(
+                all_voxel_features_prev,
+                all_voxel_coords_prev,
+                batch_size,
+                previous_sstblock=True,
             )
-        # spatial_features_prev, spatial_features_stride_prev \
-        #     = self.dense_conv(multi_scale_3d_features_prev, multi_scale_3d_strides_prev)
+        )
 
         all_voxel_features, all_voxel_coords = (
             batch_dict["voxel_features"],

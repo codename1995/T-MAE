@@ -82,7 +82,7 @@ def parse_config():
     parser.add_argument("--save_to_file", action="store_true", default=False, help="")
     parser.add_argument("--fuse_conv_bn", action="store_true", default=False, help="")
     parser.add_argument(
-        "--fixed_gap", type=int, default=-1, help="fixed gap between frames"
+        "--fixed_gap_eval", type=int, default=-1, help="fixed gap between frames"
     )
 
     args = parser.parse_args()
@@ -324,8 +324,8 @@ def main():
 
     ckpt_dir = args.ckpt_dir if args.ckpt_dir is not None else output_dir / "ckpt"
 
-    if args.fixed_gap != -1:
-        cfg.DATA_CONFIG.FIXED_GAP = args.fixed_gap
+    if args.fixed_gap_eval != -1:
+        cfg.DATA_CONFIG.FIXED_GAP = args.fixed_gap_eval
     test_set, test_loader, sampler = build_dataloader(
         dataset_cfg=cfg.DATA_CONFIG,
         class_names=cfg.CLASS_NAMES,

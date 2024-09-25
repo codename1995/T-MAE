@@ -7,6 +7,7 @@ from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 from ...utils import box_utils, common_utils
 from .once_eval.once_utils import convert_prv_frame_to_cur, remove_ego_points
 from tools.visual_utils.open3d_vis_utils import draw_scenes, draw_scenes_with_2pcs
+import pdb
 
 
 class ONCETemporalDataset(DatasetTemplate):
@@ -84,6 +85,7 @@ class ONCETemporalDataset(DatasetTemplate):
         seq_id = ""
         start_id = 0
         for i, info in enumerate(once_infos):
+            # for i, info in enumerate(once_infos[:5000]):  # if debug
             if seq_id != info["sequence_id"] or i == len(once_infos) - 1:
                 seq_id = info["sequence_id"]
                 intervals = self._generate_intervals(start_id, i, self.scan_window)
@@ -203,14 +205,9 @@ class ONCETemporalDataset(DatasetTemplate):
             data_dict.pop("num_points_in_gt", None)
 
             points_prev, points = self._split_two_pcs(data_dict["points"])
-            # if self.limit_max_number_of_points and hasattr(self, 'max_number_of_points_back'):
-            #     points = self._limite_number_of_points(points, self.max_number_of_points_back)
-            #     points_prev = self._limite_number_of_points(points_prev, self.max_number_of_points_back)
 
             data_dict["points_prev"] = points_prev
             data_dict["points"] = points
-
-            # draw_scenes_with_2pcs(points, points_prev, data_dict['gt_boxes'])
 
             return data_dict
 

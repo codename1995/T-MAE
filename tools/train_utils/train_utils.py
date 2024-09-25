@@ -11,27 +11,35 @@ import wandb
 import pdb
 from torch.cuda.amp import GradScaler, autocast
 
-# def print_params(model):
-#     for name, param in model.named_parameters():
-#         name = name.replace("module.", "")
-#         if name == "vfe.dvfe_mlps.0.0.weight":
-#             print("vfe.dvfe_mlps.0.0.weight")
-#             print(param.data[0][:5])
-#         elif name == "backbone_3d.sst_blocks.0.encoder_blocks.0.encoder_list.0.linear1.weight":
-#             print("backbone_3d.sst_blocks.0.encoder_blocks.0.encoder_list.0.linear1.weight")
-#             print(param.data[0][:5])
-#         elif name == "backbone_3d.ca_blocks.0.encoder_blocks.0.encoder_list.0.linear1.weight":
-#             print("backbone_3d.ca_blocks.0.encoder_blocks.0.encoder_list.0.linear1.weight")
-#             print(param.data[0][:5])
 
-def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, accumulated_iter, optim_cfg,
-                    rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False,
-                    gradient_accumulation_steps=1, use_wandb=False, record_batch=False, scaler=None):
+def train_one_epoch(
+    model,
+    optimizer,
+    train_loader,
+    model_func,
+    lr_scheduler,
+    accumulated_iter,
+    optim_cfg,
+    rank,
+    tbar,
+    total_it_each_epoch,
+    dataloader_iter,
+    tb_log=None,
+    leave_pbar=False,
+    gradient_accumulation_steps=1,
+    use_wandb=False,
+    scaler=None,
+):
     if total_it_each_epoch == len(train_loader):
         dataloader_iter = iter(train_loader)
 
     if rank == 0:
-        pbar = tqdm.tqdm(total=total_it_each_epoch, leave=leave_pbar, desc='train', dynamic_ncols=True)
+        pbar = tqdm.tqdm(
+            total=total_it_each_epoch,
+            leave=leave_pbar,
+            desc="train",
+            dynamic_ncols=True,
+        )
         data_time = common_utils.AverageMeter()
         batch_time = common_utils.AverageMeter()
         forward_time = common_utils.AverageMeter()
@@ -43,14 +51,7 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
         except StopIteration:
             dataloader_iter = iter(train_loader)
             batch = next(dataloader_iter)
-            print('new iters')
-
-        if record_batch:
-            tmp_file = "../tmp/{}.txt".format(rank)
-            with open(tmp_file, "w") as f:
-                f.write("{}\n".format(batch['frame_id'][0]))
-                if len(batch['frame_id']) > 1:
-                    f.write("{}".format(batch['frame_id'][1]))
+            print("new iters")
 
         data_timer = time.time()
         cur_data_time = data_timer - end
@@ -61,19 +62,23 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
         try:
             cur_lr = float(optimizer.lr)
         except:
-            cur_lr = optimizer.param_groups[0]['lr']
+            cur_lr = optimizer.param_groups[0]["lr"]
 
         if tb_log is not None:
-            tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
+            tb_log.add_scalar("meta_data/learning_rate", cur_lr, accumulated_iter)
 
         if (cur_it + 1) % gradient_accumulation_steps == 0:
             optimizer.zero_grad()
 
         if scaler is not None:
             with autocast():
-                loss, tb_dict, disp_dict = model_func(model, batch, global_step=accumulated_iter)
+                loss, tb_dict, disp_dict = model_func(
+                    model, batch, global_step=accumulated_iter
+                )
         else:
-            loss, tb_dict, disp_dict = model_func(model, batch, global_step=accumulated_iter)
+            loss, tb_dict, disp_dict = model_func(
+                model, batch, global_step=accumulated_iter
+            )
 
         loss = loss / gradient_accumulation_steps
 
@@ -105,10 +110,15 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
             data_time.update(avg_data_time)
             forward_time.update(avg_forward_time)
             batch_time.update(avg_batch_time)
-            disp_dict.update({
-                'loss': loss.item(), 'lr': cur_lr, 'd_time': f'{data_time.val:.2f}({data_time.avg:.2f})',
-                'f_time': f'{forward_time.val:.2f}({forward_time.avg:.2f})', 'b_time': f'{batch_time.val:.2f}({batch_time.avg:.2f})'
-            })
+            disp_dict.update(
+                {
+                    "loss": loss.item(),
+                    "lr": cur_lr,
+                    "d_time": f"{data_time.val:.2f}({data_time.avg:.2f})",
+                    "f_time": f"{forward_time.val:.2f}({forward_time.avg:.2f})",
+                    "b_time": f"{batch_time.val:.2f}({batch_time.avg:.2f})",
+                }
+            )
 
             pbar.update()
             pbar.set_postfix(dict(total_it=accumulated_iter))
@@ -116,38 +126,61 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
             tbar.refresh()
 
             if tb_log is not None:
-                tb_log.add_scalar('train/loss', loss, accumulated_iter)
-                tb_log.add_scalar('meta_data/learning_rate', cur_lr, accumulated_iter)
+                tb_log.add_scalar("train/loss", loss, accumulated_iter)
+                tb_log.add_scalar("meta_data/learning_rate", cur_lr, accumulated_iter)
                 for key, val in tb_dict.items():
-                    tb_log.add_scalar('train/' + key, val, accumulated_iter)
+                    tb_log.add_scalar("train/" + key, val, accumulated_iter)
 
                 if use_wandb:
-                    wandb.log({
-                        'train/loss': loss,
-                        'meta_data/learning_rate': cur_lr,
-                        **tb_dict,
+                    wandb.log(
+                        {
+                            "train/loss": loss,
+                            "meta_data/learning_rate": cur_lr,
+                            **tb_dict,
                         },
-                        step=accumulated_iter
+                        step=accumulated_iter,
                     )
     if rank == 0:
         pbar.close()
     return accumulated_iter
 
 
-def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_cfg,
-                start_epoch, total_epochs, start_iter, rank, tb_log, ckpt_save_dir, train_sampler=None,
-                lr_warmup_scheduler=None, ckpt_save_interval=1, max_ckpt_save_num=50,
-                merge_all_iters_to_one_epoch=False,
-                gradient_accumulation_steps=1,
-                use_wandb=False, record_batch=False, scaler=None):
+def train_model(
+    model,
+    optimizer,
+    train_loader,
+    model_func,
+    lr_scheduler,
+    optim_cfg,
+    start_epoch,
+    total_epochs,
+    start_iter,
+    rank,
+    tb_log,
+    ckpt_save_dir,
+    train_sampler=None,
+    lr_warmup_scheduler=None,
+    ckpt_save_interval=1,
+    max_ckpt_save_num=50,
+    merge_all_iters_to_one_epoch=False,
+    gradient_accumulation_steps=1,
+    use_wandb=False,
+    scaler=None,
+):
     accumulated_iter = start_iter
-    with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
+    with tqdm.trange(
+        start_epoch, total_epochs, desc="epochs", dynamic_ncols=True, leave=(rank == 0)
+    ) as tbar:
         total_it_each_epoch = len(train_loader)
         if merge_all_iters_to_one_epoch:
-            train_loader.dataset.merge_all_iters_to_one_epoch(merge=True, epochs=total_epochs)
+            train_loader.dataset.merge_all_iters_to_one_epoch(
+                merge=True, epochs=total_epochs
+            )
             total_it_each_epoch = len(train_loader) // max(total_epochs, 1)
         else:
-            train_loader.dataset.merge_all_iters_to_one_epoch(merge=False, epochs=total_epochs)
+            train_loader.dataset.merge_all_iters_to_one_epoch(
+                merge=False, epochs=total_epochs
+            )
 
         dataloader_iter = iter(train_loader)
         for cur_epoch in tbar:
@@ -162,16 +195,21 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
             else:
                 cur_scheduler = lr_scheduler
             accumulated_iter = train_one_epoch(
-                model, optimizer, train_loader, model_func,
+                model,
+                optimizer,
+                train_loader,
+                model_func,
                 lr_scheduler=cur_scheduler,
-                accumulated_iter=accumulated_iter, optim_cfg=optim_cfg,
-                rank=rank, tbar=tbar, tb_log=tb_log,
+                accumulated_iter=accumulated_iter,
+                optim_cfg=optim_cfg,
+                rank=rank,
+                tbar=tbar,
+                tb_log=tb_log,
                 leave_pbar=(cur_epoch + 1 == total_epochs),
                 total_it_each_epoch=total_it_each_epoch,
                 dataloader_iter=dataloader_iter,
                 gradient_accumulation_steps=gradient_accumulation_steps,
                 use_wandb=use_wandb,
-                record_batch=record_batch,
                 scaler=scaler,
             )
 
@@ -179,16 +217,21 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
             trained_epoch = cur_epoch + 1
             if trained_epoch % ckpt_save_interval == 0 and rank == 0:
 
-                ckpt_list = glob.glob(str(ckpt_save_dir / 'checkpoint_epoch_*.pth'))
+                ckpt_list = glob.glob(str(ckpt_save_dir / "checkpoint_epoch_*.pth"))
                 ckpt_list.sort(key=os.path.getmtime)
 
                 if ckpt_list.__len__() >= max_ckpt_save_num:
-                    for cur_file_idx in range(0, len(ckpt_list) - max_ckpt_save_num + 1):
+                    for cur_file_idx in range(
+                        0, len(ckpt_list) - max_ckpt_save_num + 1
+                    ):
                         os.remove(ckpt_list[cur_file_idx])
 
-                ckpt_name = ckpt_save_dir / ('checkpoint_epoch_%d' % trained_epoch)
+                ckpt_name = ckpt_save_dir / ("checkpoint_epoch_%d" % trained_epoch)
                 save_checkpoint(
-                    checkpoint_state(model, optimizer, trained_epoch, accumulated_iter, scaler), filename=ckpt_name,
+                    checkpoint_state(
+                        model, optimizer, trained_epoch, accumulated_iter, scaler
+                    ),
+                    filename=ckpt_name,
                 )
 
 
@@ -212,20 +255,27 @@ def checkpoint_state(model=None, optimizer=None, epoch=None, it=None, scaler=Non
 
     try:
         import pcdet
-        version = 'pcdet+' + pcdet.__version__
+
+        version = "pcdet+" + pcdet.__version__
     except:
-        version = 'none'
+        version = "none"
 
-    return {'epoch': epoch, 'it': it, 'model_state': model_state, 'optimizer_state': optim_state,
-            'scaler': scaler_state, 'version': version}
+    return {
+        "epoch": epoch,
+        "it": it,
+        "model_state": model_state,
+        "optimizer_state": optim_state,
+        "scaler": scaler_state,
+        "version": version,
+    }
 
 
-def save_checkpoint(state, filename='checkpoint'):
-    if False and 'optimizer_state' in state:
-        optimizer_state = state['optimizer_state']
-        state.pop('optimizer_state', None)
-        optimizer_filename = '{}_optim.pth'.format(filename)
-        torch.save({'optimizer_state': optimizer_state}, optimizer_filename)
+def save_checkpoint(state, filename="checkpoint"):
+    if False and "optimizer_state" in state:
+        optimizer_state = state["optimizer_state"]
+        state.pop("optimizer_state", None)
+        optimizer_filename = "{}_optim.pth".format(filename)
+        torch.save({"optimizer_state": optimizer_state}, optimizer_filename)
 
-    filename = '{}.pth'.format(filename)
+    filename = "{}.pth".format(filename)
     torch.save(state, filename)
