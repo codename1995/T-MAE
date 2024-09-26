@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-
-PYTHON="/home/wwei2/miniconda3/envs/gd-mae/bin/python"
 NGPUS=4
 
 # T-MAE Pretraining

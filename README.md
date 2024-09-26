@@ -11,12 +11,13 @@ This repository contains the official implementation of the paper [T-MAE: Tempor
 ## 🔥 News
 - [2024/09/19] The code will be released soon.
 - [2024/09/22] Release the code of evaluation on ONCE dataset.
+- [2024/09/25] Training code on ONCE dataset released as well as the pretrained and finetuned  weights.
 
 ## Table of Contents
 
 ## TODO
 - [x] Release ONCE evaluation code.
-- [ ] Release ONCE training code.
+- [x] Release ONCE training code.
 - [ ] Release Waymo training code and inference code.
 
 ## Installation
@@ -42,7 +43,7 @@ cd pcdet/ops/dcn && python setup.py develop --user
 ```
 
 ## Data Preparation
-Please follow the [instruction](https://github.com/open-mmlab/OpenPCDet/blob/master/docs/GETTING_STARTED.md) of OpenPCDet to prepare the dataset. For the Waymo dataset, we use the [evaluation toolkits](https://drive.google.com/drive/folders/1aa1kI9hhzBoZkIBcr8RBO3Zhg_RkOAag?usp=sharing) to evaluate detection results, where the `compute_detection_metrics_main` file comes from Waymo-open-dataset API ([Mar 2023](https://github.com/waymo-research/waymo-open-dataset/blob/9d0be7c4aeed2ef5e11f2e739537bf2d27cec65b/docs/quick_start.md)) and its source code](https://github.com/waymo-research/waymo-open-dataset/blob/9d0be7c4aeed2ef5e11f2e739537bf2d27cec65b/src/waymo_open_dataset/metrics/tools/compute_detection_metrics_main.cc) is C++ based.
+Please follow the [instruction](https://github.com/open-mmlab/OpenPCDet/blob/master/docs/GETTING_STARTED.md) of OpenPCDet to prepare the dataset. For the Waymo dataset, we use the [evaluation toolkits](https://drive.google.com/drive/folders/1aa1kI9hhzBoZkIBcr8RBO3Zhg_RkOAag?usp=sharing) to evaluate detection results, where the `compute_detection_metrics_main` file comes from Waymo-open-dataset API ([Mar 2023](https://github.com/waymo-research/waymo-open-dataset/blob/9d0be7c4aeed2ef5e11f2e739537bf2d27cec65b/docs/quick_start.md)) and its [source code](https://github.com/waymo-research/waymo-open-dataset/blob/9d0be7c4aeed2ef5e11f2e739537bf2d27cec65b/src/waymo_open_dataset/metrics/tools/compute_detection_metrics_main.cc) is C++ based.
 
 ```
 data
@@ -81,12 +82,13 @@ data
 
 ## Training & Testing
 
+### ONCE dataset
 ```
-# t-mae pretrain
-bash scripts/once_ssl_train.sh
-
-# finetune
+# t-mae pretrain & finetune on ONCE
 bash scripts/once_train.sh
+
+# Load provided pretrained model and finetune on ONCE
+bash scripts/once_finetune_only.sh
 
 # test
 bash scripts/once_test.sh
@@ -95,13 +97,14 @@ bash scripts/once_test.sh
 ## Results
 ### Waymo
 Reproduced results to be updated soon.
-We could not provide the above pretrained models due to [Waymo Dataset License Agreement](https://waymo.com/open/terms/).
+We could not provide the pretrained weights due to [Waymo Dataset License Agreement](https://waymo.com/open/terms/).
 
 
 ### ONCE
-| | mAP | Vehicle | Pedestrian | Cyclist | Pretrained Weights |
+| | mAP | Vehicle | Pedestrian | Cyclist | Weights |
 | --- | :---: | :---: | :---: | :---: | :---: |
-| T-MAE | 67.41 | 77.53 | 54.81 | 69.90 | [ckpt](https://drive.google.com/file/d/1_8YrjzobyxrK86TyQphGZwhEjBMOfnOa/view?usp=drive_link) |
+| T-MAE (Pretrained)   |   -   |   -   |   -   |   -   | [once_tmae_pretrained.pth](https://drive.google.com/file/d/1K4HO-QE3QsosOymeLRNoWnefJphat8mS/view?usp=drive_link)
+| T-MAE (Finetuned) | 67.41 | 77.53 | 54.81 | 69.90 | [once_tmae_weights.pth](https://drive.google.com/file/d/1_8YrjzobyxrK86TyQphGZwhEjBMOfnOa/view?usp=drive_link) |
 
 
 ## Citation
